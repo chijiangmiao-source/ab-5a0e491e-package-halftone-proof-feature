@@ -1,0 +1,31 @@
+# 专色稿蛇行抖动 —— 容器编排
+#
+# 一次性验收（单元测试 + 类型检查/构建 + 端到端）：
+#   docker compose build verify
+#   docker compose run --rm verify
+#
+# 长期运行的纯前端静态服务：
+#   WEB_PORT=9090 docker compose up web
+# 不设置 WEB_PORT 时宿主端口默认 8080，容器内固定监听 8080。
+
+services:
+  verify:
+    # 挂在 verify profile 下：`docker compose up` 只启动 web；
+    # 显式 run/up 指定 verify 时自动激活，跑完即退出。
+    profiles: ["verify"]
+    build:
+      context: .
+      target: verify
+    environment:
+      CI: "true"
+    # 不发布端口：端到端测试在容器内自起 127.0.0.1:4173 预览并访问；
+    # 进程退出码即验收结论（0 通过，非 0 失败），属一次性服务。
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      target: web
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    restart: unless-stopped
